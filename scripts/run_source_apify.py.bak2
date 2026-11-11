@@ -1,0 +1,217 @@
+﻿"""Run a configured Apify Actor for one V4Career job portal.
+
+Set APIFY_API_TOKEN, APIFY_ACTOR_<PORTAL_KEY>, and optionally
+APIFY_INPUT_<PORTAL_KEY> (JSON matching that Actor's documented input schema).
+The JSON input may contain {keyword}, {location}, and {max_results} placeholders.
+Only use Actors and data collection methods that you are authorized to use.
+"""
+import argparse
+import json
+import logging
+import os
+import re
+import sys
+from pathlib import Path
+
+from apify_client import ApifyClient
+from dotenv import load_dotenv
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+load_dotenv(ROOT / ".env")
+
+from collectors.normalization import normalize_job
+from collectors.repository import save_jobs
+from collectors.source_catalog import JOB_PORTALS, PORTAL_BY_KEY, PORTAL_BY_NAME, DEFAULT_APIFY_ACTORS
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger("v4career.apify")
+
+
+def flatten_text(value):
+    if isinstance(value, dict):
+        for key in ("raw", "city", "name", "label", "region", "country", "displayName"):
+            if value.get(key) not in (None, ""):
+                return flatten_text(value[key])
+        return ""
+    if isinstance(value, list):
+        parts = [flatten_text(part) for part in value]
+        return ", ".join(part for part in parts if part)
+    return str(value).strip() if value is not None else ""
+
+
+def first(item, keys):
+    for key in keys:
+        value = item.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def map_item(item):
+    if not isinstance(item, dict):
+        raise ValueError("Actor dataset item must be a JSON object")
+    url = first(item, (
+        "job_url", "jobUrl", "job_link", "jobLink", "url", "link",
+        "apply_url", "applyUrl", "platform_url", "jobDetailsUrl", "job_url_link", "public_url",
+        "jobLinkUrl", "job_url_path", "jobPageUrl", "jobPostingUrl", "href",
+    ))
+    if isinstance(url, dict):
+        url = first(url, ("url", "href", "link"))
+    return {
+        "external_id": first(item, ("id", "job_id", "jobId", "jobID", "jobKey", "key", "external_id", "jobPostingId", "uuid")),
+        "title": first(item, ("title", "job_title", "jobTitle", "position", "role", "primaryRole", "designation", "name", "job_name")),
+        "company": flatten_text(first(item, ("company", "company_name", "companyName", "employer", "startupName", "company_name_text", "organization", "hiringCompany"))),
+        "location": flatten_text(first(item, ("location", "job_location", "jobLocation", "locations", "locationNames", "jobLocations", "city", "job_city", "workLocation", "formattedLocation"))),
+        "experience": flatten_text(first(item, ("experience", "experience_range", "experienceRange", "experienceText", "experienceMinYears", "job_level", "jobLevel", "experience_required", "yearsOfExperience"))),
+        "salary_min": first(item, ("salary_min", "salaryMin", "minSalary", "minimumSalary", "salary_minimum")),
+        "salary_max": first(item, ("salary_max", "salaryMax", "maxSalary", "maximumSalary", "salary_maximum")),
+        "salary_currency": first(item, ("salary_currency", "salaryCurrency", "currency", "salaryCurrencyCode")),
+        "salary_period": first(item, ("salary_period", "salaryPeriod", "salary_type", "payPeriod", "salaryFrequency")),
+        "salary": first(item, ("salary", "salary_range", "salaryRange", "compensation", "pay")),
+        "skills": first(item, ("skills", "key_skills", "keySkills", "technologies", "attributes", "skillTags")),
+        "description": first(item, ("description", "descriptionText", "descriptionMarkdown", "descriptionHtml", "job_description", "jobDescription", "summary", "job_summary", "shortDescription", "aboutRole")),
+        "job_url": str(url).strip() if url else None,
+        "posted_at": first(item, ("posted_at", "postedAt", "posted_date", "postedDate", "datePublished", "postDate", "published_at", "created_at")),
+        "status": first(item, ("status", "job_status")) or "active",
+    }
+
+
+def replace_placeholders(value, keyword, location, max_results):
+    replacements = {
+        "{keyword}": keyword,
+        "{location}": location,
+        "{max_results}": max_results,
+    }
+    if isinstance(value, str):
+        if value in replacements:
+            return replacements[value]
+        for token, replacement in replacements.items():
+            value = value.replace(token, str(replacement))
+        return value
+    if isinstance(value, list):
+        return [replace_placeholders(v, keyword, location, max_results) for v in value]
+    if isinstance(value, dict):
+        return {k: replace_placeholders(v, keyword, location, max_results) for k, v in value.items()}
+    return value
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Collect jobs from one configured Apify Actor")
+    parser.add_argument("--source", required=True, help="Portal name or key, e.g. indeed or naukri")
+    parser.add_argument("--keyword", default="Software Engineer")
+    parser.add_argument("--location", default="India")
+    parser.add_argument("--max-results", type=int, default=20)
+    args = parser.parse_args()
+    # Some Actors expect a city/country name without the V4Career India suffix.
+    actor_location = args.location.strip()
+    if actor_location.lower() != "india" and actor_location.lower().endswith(", india"):
+        actor_location = actor_location[:-len(", india")].strip()
+    if args.location.strip().lower() not in {"india"} and not args.location.strip().lower().endswith(", india"):
+        parser.error("V4Career is configured for India-only collection. Use --location India or an Indian city/state ending in ', India'.")
+    if args.max_results < 1 or args.max_results > 500:
+        parser.error("--max-results must be between 1 and 500")
+
+    key = re.sub(r"[^A-Z0-9]+", "_", args.source.strip().upper()).strip("_")
+    portal = PORTAL_BY_KEY.get(key.lower()) or PORTAL_BY_NAME.get(args.source.strip().lower())
+    if not portal:
+        parser.error("Unknown source. Use one of: " + ", ".join(p["name"].strip() for p in JOB_PORTALS))
+
+    env_key = portal["key"]
+    actor_id = os.getenv(f"APIFY_ACTOR_{env_key}", "").strip()
+    if not actor_id and env_key == "NAUKRI":
+        actor_id = os.getenv("APIFY_NAUKRI_ACTOR_ID", "").strip()
+    if not actor_id:
+        actor_id = DEFAULT_APIFY_ACTORS.get(env_key, "")
+    token = os.getenv("APIFY_API_TOKEN", "").strip()
+    if not token:
+        raise SystemExit("APIFY_API_TOKEN is missing from the local .env file.")
+    if not actor_id:
+        raise SystemExit(f"No Actor configured for {portal['name'].strip()}. Set APIFY_ACTOR_{env_key} in .env.")
+    if os.getenv(f"APIFY_ACCESS_APPROVED_{env_key}", "false").lower() != "true":
+        raise SystemExit(f"Collection for {portal['name'].strip()} is disabled. Confirm that your access method and data reuse are authorized, then set APIFY_ACCESS_APPROVED_{env_key}=true locally.")
+
+    input_json = os.getenv(f"APIFY_INPUT_{env_key}", "").strip()
+    if input_json:
+        try:
+            run_input = json.loads(input_json)
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"APIFY_INPUT_{env_key} must be valid JSON: {exc}")
+        if not isinstance(run_input, dict):
+            raise SystemExit(f"APIFY_INPUT_{env_key} must contain a JSON object.")
+        run_input = replace_placeholders(run_input, args.keyword, args.location, args.max_results)
+    else:
+        # Source-specific input schemas verified against the selected Actor listings.
+        # APIFY_INPUT_<PORTAL_KEY> can override any schema without editing code.
+        verified_input_defaults = {
+            "NAUKRI": {"keyword": args.keyword, "location": args.location, "maxJobs": args.max_results, "experienceMin": 0},
+            "INDEED": {"query": args.keyword, "location": args.location, "maxItems": args.max_results},
+            "FOUNDIT": {"keywords": [args.keyword], "locations": [args.location], "maxItems": args.max_results},
+            "INTERNSHALA": {"searchQuery": args.keyword, "searchMode": "jobs", "fetchDetails": True, "maxResults": args.max_results},
+            "TIMESJOBS": {"searchQuery": args.keyword, "location": args.location, "maxResults": args.max_results, "enrichDetails": True},
+            
+            "WELLFOUND": {
+                "roles": [args.keyword.strip().lower().replace(" ", "-")],
+                "locations": [
+                 actor_location.strip().lower()
+                 .replace(", india", "")
+                 .replace(" ", "-")
+             ],
+            "maxJobs": args.max_results,
+            "maxPages": 3,
+            "includeDescription": True,
+        },
+            # Actor-specific input schemas. Keep limits small during validation.
+            "LINKEDIN_JOBS": {"keywords": [args.keyword], "location": actor_location, "maxResultsPerSearch": max(10, args.max_results), "maxItems": args.max_results, "datePosted": "any"},
+            "CUTSHORT": {"searchQueries": [args.keyword], "location": actor_location, "maxItems": args.max_results},
+            "HIRIST": {"keywords": [args.keyword], "locations": [] if actor_location.lower() == "india" else [actor_location], "maxJobsPerSearch": args.max_results},
+            "APNA": {"keyword": args.keyword, "location": actor_location, "maxItems": min(args.max_results, 20), "includeDescription": False},
+            "IIMJOBS": {"searchQueries": [args.keyword], "location": actor_location, "maxItems": args.max_results, "includeDetails": False},
+            "WORKINDIA": {"query": args.keyword, "location": actor_location, "maxItems": min(args.max_results, 20)},
+
+            "INSTAHYRE": {"jobFunctionSlugs": ["backend-development"], "maxJobs": args.max_results},
+           
+            
+            "SHINE_COM": {"keywords": [args.keyword], "locations": [actor_location], "maxResults": args.max_results},
+            
+            
+            "GLASSDOOR": {"keyword": args.keyword, "location": args.location, "country": "in", "maxPages": max(1, min(5, (args.max_results + 9) // 10)), "includeEnrichedData": False},
+            "FRESHERSWORLD": {"keyword": args.keyword, "location": actor_location, "results_wanted": args.max_results, "max_pages": max(1, min(5, (args.max_results + 19) // 20))},
+            "NATIONAL_CAREER_SERVICE_NCS": {"mode": "search", "query": args.keyword, "location": actor_location, "maxItems": args.max_results, "maxCandidates": max(args.max_results, args.max_results * 2), "maxPages": 2, "maxDetailRequests": args.max_results, "maxRequests": max(args.max_results * 3, 12), "deadlineSeconds": 120, "timeoutMs": 20000},
+            "JOOBLE": {"searchQueries": [args.keyword], "locations": [actor_location], "country": "in.jooble.org", "maxItems": args.max_results, "maxPagesPerSearch": 1, "fetchFullDescriptions": False},
+            "QUIKRJOBS": {"mode": "search", "query": args.keyword, "location": ("Bangalore" if actor_location.strip().lower() in {"india", "bengaluru"} else actor_location), "maxItems": args.max_results, "maxPages": max(1, min(5, (args.max_results + 19) // 20))},
+            "JORA": {"mode": "search", "keywords": args.keyword, "location": actor_location, "country": "in", "maxJobs": args.max_results},
+        }
+        if env_key not in verified_input_defaults:
+            raise SystemExit(
+                f"No verified default input schema for {portal['name'].strip()}. "
+                f"Set APIFY_INPUT_{env_key} to JSON matching the selected Actor's current Input tab before running it."
+            )
+        run_input = verified_input_defaults[env_key]
+
+    client = ApifyClient(token)
+    logger.info("Starting Actor for source=%s actor=%s", portal["name"].strip(), actor_id)
+    run = client.actor(actor_id).call(run_input=run_input)
+    if not run or run.get("status") != "SUCCEEDED":
+        raise SystemExit(f"Actor run did not succeed: {run.get('status') if run else 'no run result'}")
+    dataset_id = run.get("defaultDatasetId")
+    if not dataset_id:
+        raise SystemExit("Actor run succeeded but did not return a dataset ID.")
+
+    normalized, skipped = [], 0
+    for index, item in enumerate(client.dataset(dataset_id).iterate_items()):
+        try:
+            normalized.append(normalize_job(map_item(item)))
+        except (ValueError, TypeError, AttributeError) as exc:
+            skipped += 1
+            logger.warning("Skipping invalid %s item %s: %s", portal["name"].strip(), index, exc)
+    result = save_jobs(portal["name"].strip(), portal["base_url"], normalized)
+    logger.info("Collection complete source=%s found=%d saved=%d skipped=%d", portal["name"].strip(), len(normalized), len(normalized), skipped)
+    print(json.dumps({"source": portal["name"].strip(), "records_found": len(normalized), "records_skipped": skipped, **result}, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+
+

@@ -1,0 +1,32 @@
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+
+# Python environments
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs and temporary files
+*.log
+*.collection.lock
+*.tmp
+*.bak
+
+# Build artifacts
+build/
+dist/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

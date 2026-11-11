@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V4Career | Job Opportunities Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='v4career-reference-redesign-20261022-v1') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='credits.css') }}">
+</head>
+
+<body data-user-role="{{ user_role }}">
+    <div class="app-layout">
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <img
+                    src="{{ url_for('static', filename='v4career_logo.png') }}"
+                    alt="V4Career"
+                    class="sidebar-logo"
+                >
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Main navigation">
+
+                <!-- Dashboard -->
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon icon-dashboard" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5M9.5 21v-7h5v7"/></svg></span>
+                    <span class="nav-item-label">Dashboard</span>
+                </a>
+
+                <!-- Job portal dropdown -->
+                <button
+                    type="button"
+                    class="nav-item nav-dropdown"
+                    id="jobPortalToggle"
+                    aria-expanded="false"
+                    aria-controls="sourceMenu"
+                >
+                    <span class="nav-icon icon-job-portal" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 5V3h8v2M3 10h18M8 14h3M8 17h7"/></svg></span>
+                    
+                    <span class="nav-item-label">Job Portal</span>
+                    <span class="dropdown-arrow" id="dropdownArrow" aria-hidden="true">+</span>
+                </button>
+
+                <div class="source-menu" id="sourceMenu" hidden>
+                    <div id="sourceOptions">
+                        <!-- Job sources are loaded from Flask -->
+                    </div>
+                </div>
+
+                <!-- Company career sources -->
+                <button
+                    type="button"
+                    class="nav-item nav-dropdown"
+                    id="companiesToggle"
+                    aria-expanded="false"
+                    aria-controls="companyOptions"
+                >
+                    <span class="nav-icon icon-companies" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="1.5"/><path d="M8 7V4h8v3M3 12h18M8 12v9M16 12v9"/></svg></span>
+                    
+                    <span class="nav-item-label">Companies</span>
+                    <span class="dropdown-arrow" id="companiesArrow" aria-hidden="true">+</span>
+                </button>
+                <div class="source-menu company-menu" id="companyOptions" hidden></div>
+
+                {% if user_role == "admin" %}
+                <a href="#" class="nav-item" data-page="credits">
+                    <span class="nav-icon icon-reports" aria-hidden="true">¢</span>
+                    <span class="nav-item-label">Credits & Subscription</span>
+                </a>
+                {% endif %}
+
+                <!-- Reports -->
+                <a href="#" class="nav-item" data-page="reports">
+                    <span class="nav-icon icon-reports" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h4M8 12h8M8 16h8"/></svg></span>
+                    <span class="nav-item-label">Reports</span>
+                </a>
+
+            </nav>
+
+
+        </aside>
+
+        <!-- Main application -->
+        <main class="main-content">
+
+            <!-- Header -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button
+                        type="button"
+                        class="mobile-menu-button"
+                        id="mobileMenuButton"
+                        aria-label="Toggle navigation"
+                    aria-expanded="true"
+                    aria-controls="sidebar"
+                    title="Collapse sidebar"
+                    >☰</button>
+
+                    <div>
+                        <p class="breadcrumb" hidden></p>
+                        <h1 id="pageTitle" hidden>Job Opportunities</h1>
+                    </div>
+                </div>
+
+                <div class="placement-cell-title">Placement Assistance</div><div id="userCreditBadge" class="credit-badge" hidden>Credits: <strong id="creditBalance">—</strong></div>
+                <div class="topbar-right">
+                    <div class="profile-menu" id="profileMenu">
+                        <button type="button" class="profile-avatar" id="profileButton" aria-label="Open profile menu" aria-haspopup="true" aria-expanded="false">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M4.5 20c.7-4 3.2-6 7.5-6s6.8 2 7.5 6"></path></svg>
+                        </button>
+                        <div class="profile-dropdown" id="profileDropdown" hidden>
+                            <button type="button" class="logout-button" id="logoutButton">↪ Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dedicated dashboard overview -->
+            <section class="workspace dashboard-page" id="dashboardPage" {% if user_role == 'user' %}hidden{% endif %}>
+                <div class="workspace-heading dashboard-heading">
+                    <div>
+                        <h2>Career intelligence at a glance</h2>
+                        <p>Live insights from stored job records and recent collection runs.</p>
+                    </div>
+                    <button type="button" class="table-action" id="refreshDashboardButton">↻ Refresh dashboard</button>
+                </div>
+                <div class="dashboard-metrics report-cards">
+                    <article class="report-card metric-card"><span>Total active jobs</span><strong id="metricTotalJobs">—</strong><small>Stored jobs not marked closed or inactive</small></article>
+                    <article class="report-card metric-card"><span>Jobs added today</span><strong id="metricJobsToday">—</strong><small>New records created today</small></article>
+                    <article class="report-card metric-card"><span>Sources with job data</span><strong id="metricEnabledSources">—</strong><small>Sources represented in stored job records</small></article>
+                    <article class="report-card metric-card"><span>Collection failures today</span><strong id="metricFailedToday">—</strong><small>Runs marked failed today</small></article>
+                </div>
+                <section class="admin-analytics-grid" id="adminAnalytics">
+                    <article class="admin-analytics-card">
+                        <div class="admin-analytics-head"><h3>Job Portal Contribution</h3><button class="analytics-details" data-analytics="portals">View Details →</button></div>
+                        <div class="analytics-donut-layout"><div class="analytics-donut" id="portalDonut"><span><strong id="portalTotal">—</strong><small>Jobs</small></span></div><div class="analytics-legend" id="portalLegend"><span class="empty-state">Loading portals…</span></div></div>
+                    </article>
+                    <article class="admin-analytics-card">
+                        <div class="admin-analytics-head"><h3>Fresher vs Experienced</h3><button class="analytics-details" data-analytics="experience">View Details →</button></div>
+                        <div class="analytics-donut-layout"><div class="analytics-donut experience-donut" id="experienceDonut"><span><strong id="experienceTotal">—</strong><small>Jobs</small></span></div><div class="analytics-legend" id="experienceLegend"></div></div>
+                    </article>
+                    <article class="admin-analytics-card">
+                        <div class="admin-analytics-head"><h3>Companies Distribution</h3><button class="analytics-details" data-analytics="companies">View Details →</button></div>
+                        <div class="analytics-bars" id="companyBars"><span class="empty-state">Loading companies…</span></div>
+                    </article>
+                    <article class="admin-analytics-card">
+                        <div class="admin-analytics-head"><h3>Locations Distribution</h3><button class="analytics-details" data-analytics="locations">View Details →</button></div>
+                        <div class="analytics-bars location-bars" id="locationBars"><span class="empty-state">Loading locations…</span></div>
+                    </article>
+                </section>
+                <div class="analytics-modal" id="analyticsModal" hidden>
+                    <div class="analytics-modal-backdrop" data-close-analytics></div>
+                    <section class="analytics-modal-content" role="dialog" aria-modal="true" aria-labelledby="analyticsModalTitle">
+                        <div class="admin-analytics-head"><h3 id="analyticsModalTitle">Analytics details</h3><button class="analytics-close" data-close-analytics aria-label="Close">×</button></div>
+                        <input id="analyticsSearch" type="search" placeholder="Search all records…" class="analytics-search">
+                        <div class="analytics-detail-list" id="analyticsDetailList"></div>
+                    </section>
+                </div>
+                <div class="dashboard-panels dashboard-panels-stack">
+                    <section class="report-panel">
+                        <div class="report-panel-heading"><h3>Recent collection activity</h3><button type="button" class="table-action" data-page="reports">View reports</button></div>
+                        <div class="table-container"><table class="jobs-table"><thead><tr><th>Source</th><th>Started</th><th>Status</th><th>Found</th><th>Inserted</th></tr></thead><tbody id="dashboardRunsBody"><tr><td colspan="5" class="empty-state">Loading collection activity…</td></tr></tbody></table></div>
+                    </section>
+                    <section class="report-panel" id="loginAuditPanel">
+                        <div class="report-panel-heading"><h3>Login Audit</h3><span class="table-action">Latest 10</span></div>
+                        <div class="table-container"><table class="jobs-table"><thead><tr><th>User email</th><th>Role</th><th>Activity</th><th>Status</th><th>IP address</th><th>Approx. location</th><th>Date &amp; time</th></tr></thead><tbody id="loginAuditBody"><tr><td colspan="7" class="empty-state">Loading login audit…</td></tr></tbody></table></div>
+                    </section>
+                    <section class="report-panel dashboard-chart-panel">
+                        <h3>Jobs added (last 14 days)</h3><p class="chart-subtitle">Daily job records created in the database</p>
+                        <div id="jobsTrendChart" class="jobs-trend-chart" role="img" aria-label="Jobs added over the last 14 days"><p class="empty-state">Loading chart…</p></div>
+                    </section>
+                </div>
+                <p class="dashboard-footnote">“Jobs added” uses the job record creation timestamp. “Jobs found” uses scraper run summaries and may include listings that were already in the database.</p>
+            </section>
+
+            <section class="workspace dashboard-page" id="userDashboardPage" {% if user_role != 'user' %}hidden{% endif %}>
+                <div class="workspace-heading dashboard-heading">
+                    <div><h1>Dashboard Overview</h1><p>Current opportunities and hiring trends from jobs stored in V4Career.</p></div>
+                    <button type="button" class="table-action" id="refreshUserDashboard">↻ Refresh insights</button>
+                </div>
+                <div class="dashboard-metrics report-cards">
+                    <article class="report-card metric-card"><span>Active opportunities</span><strong id="userMetricJobs">—</strong><small>Currently available job records</small></article>
+                    <article class="report-card metric-card"><span>Jobs listed in last 24 hours</span><strong id="userMetricRecentJobs">—</strong><small>New records added in the rolling 24-hour window</small></article>
+                    <article class="report-card metric-card"><span>Companies with new listings</span><strong id="userMetricRecentCompanies">—</strong><small>Companies represented in recent records</small></article>
+                    <article class="report-card metric-card"><span>Locations with new listings</span><strong id="userMetricRecentLocations">—</strong><small>Locations represented in recent records</small></article>
+                </div>
+                <div class="dashboard-panels dashboard-panels-stack">
+                    <section class="report-panel"><h2>Jobs listed in the last 24 hours</h2><p class="chart-subtitle">Recent stored vacancies, including company and location</p><div class="table-container"><table class="jobs-table"><thead><tr><th>Job role</th><th>Company</th><th>Location</th><th>Listed</th></tr></thead><tbody id="userRecentJobsBody"><tr><td colspan="4" class="empty-state">Loading recent jobs…</td></tr></tbody></table></div></section>
+                    <div class="dashboard-panels" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+                        <section class="report-panel"><h2>Locations with recent jobs</h2><div id="userLocations" class="user-insight-list">Loading insights…</div></section>
+                        <section class="report-panel"><h2>Companies with recent vacancies</h2><div id="userCompanies" class="user-insight-list">Loading insights…</div></section>
+                        <section class="report-panel"><h2>In-demand roles (last 24 hours)</h2><div id="userRoles" class="user-insight-list">Loading insights…</div></section>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Job portal workspace -->
+            <section class="workspace" id="jobsPage" hidden>
+
+                <div class="workspace-heading">
+                    <div>
+                        <h2>Job Opportunities</h2>
+                        <p>Explore job opportunities and get your dream IT job.</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="export-button"
+                        id="exportButton"
+                    >
+                        ↓ Export Excel
+                    </button>
+                </div>
+
+                <!-- Compact filter toolbar -->
+                <section class="filter-panel" aria-label="Job filters">
+                    <form id="filterForm">
+
+                        <div class="filter-toolbar">
+
+                            <div class="filter-field keyword-field">
+                                <label for="searchInput">Job Title</label>
+                                <div class="location-input-wrap generic-filter-wrap" data-filter="role">
+<input type="text" id="searchInput" placeholder="Select Job" autocomplete="off" aria-autocomplete="list" aria-controls="roleFilterOptions" aria-expanded="false" role="combobox">
+<button type="button" class="location-dropdown-toggle" id="roleDropdownToggle" aria-label="Show available jobs" aria-expanded="false">▾</button>
+<div class="location-options generic-filter-options" id="roleFilterOptions" role="listbox" hidden></div>
+</div>
+                            </div>
+
+                            <div class="filter-field company-main-filter">
+                                <label for="companyInput">Company</label>
+                                <div class="location-input-wrap generic-filter-wrap" data-filter="company">
+<input type="text" id="companyInput" placeholder="Select Company" autocomplete="off" aria-autocomplete="list" aria-controls="companyFilterOptions" aria-expanded="false" role="combobox">
+<button type="button" class="location-dropdown-toggle" id="companyDropdownToggle" aria-label="Show available companies" aria-expanded="false">▾</button>
+<div class="location-options generic-filter-options" id="companyFilterOptions" role="listbox" hidden></div>
+</div>
+                            </div>
+
+                            <!-- Location dropdown -->
+                            <div class="filter-field location-filter-field">
+                                <label for="locationInput">Location</label>
+
+                                <div class="location-input-wrap">
+                                    <input
+                                        type="text"
+                                        id="locationInput"
+                                        placeholder="Select Location"
+                                        autocomplete="off"
+                                        aria-autocomplete="list"
+                                        aria-controls="locationOptions"
+                                        aria-expanded="false"
+                                        role="combobox"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        class="location-dropdown-toggle"
+                                        id="locationDropdownToggle"
+                                        aria-label="Show available locations"
+                                        aria-expanded="false"
+                                        aria-controls="locationOptions"
+                                    >▾</button>
+
+                                    <div
+                                        class="location-options"
+                                        id="locationOptions"
+                                        role="listbox"
+                                        hidden
+                                    >
+                                        <div class="location-options-message">
+                                            Loading locations...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="filter-field">
+                                <label for="experienceInput">Experience</label>
+                                <div class="location-input-wrap generic-filter-wrap" data-filter="experience">
+<input type="text" id="experienceInput" placeholder="Select Experience" autocomplete="off" aria-autocomplete="list" aria-controls="experienceFilterOptions" aria-expanded="false" role="combobox">
+<button type="button" class="location-dropdown-toggle" id="experienceDropdownToggle" aria-label="Show experience options" aria-expanded="false">▾</button>
+<div class="location-options generic-filter-options" id="experienceFilterOptions" role="listbox" hidden></div>
+</div>
+                            </div>
+
+                            <div class="filter-field salary-filter-field">
+                                <label for="salaryFilterInput">Salary</label>
+                                <div class="location-input-wrap generic-filter-wrap" data-filter="salary">
+<input type="text" id="salaryFilterInput" placeholder="Select Salary" autocomplete="off" aria-autocomplete="list" aria-controls="salaryFilterOptions" aria-expanded="false" role="combobox">
+<button type="button" class="location-dropdown-toggle" id="salaryDropdownToggle" aria-label="Show salary options" aria-expanded="false">▾</button>
+<div class="location-options generic-filter-options" id="salaryFilterOptions" role="listbox" hidden></div>
+</div>
+                            </div>
+
+                            <div class="filter-field">
+                                <label for="postedDateInput">Posted after</label>
+                                <input type="date" id="postedDateInput">
+                            </div>
+
+                            <button type="submit" class="search-button">
+                                Search
+                            </button>
+
+                            <button
+                                type="button"
+                                class="clear-button"
+                                id="clearFilters"
+                            >
+                                Clear
+                            </button>
+
+                            <button
+                                type="button"
+                                class="more-filters-button"
+                                id="moreFiltersToggle"
+                                aria-expanded="false"
+                                aria-controls="moreFilters"
+                            >
+                                + More filters
+                            </button>
+
+                        </div>
+
+                        <!-- Additional filters -->
+                        <div class="more-filters" id="moreFilters" hidden>
+
+                            <div class="filter-field">
+                                <label for="skillsInput">Skills</label>
+                                <input
+                                    type="text"
+                                    id="skillsInput"
+                                    placeholder="e.g. Python, SQL"
+                                >
+                            </div>
+
+                            <div class="filter-field">
+                                <label for="statusFilter">Status</label>
+                                <select id="statusFilter">
+                                    <option value="">All statuses</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Table toolbar -->
+                <div class="table-toolbar">
+                    <div class="results-summary">
+                        <strong id="resultCount">0</strong>
+                        <span>jobs found</span>
+                        <span class="toolbar-divider">|</span>
+                        <span id="sourceSummary">All sources</span>
+                    </div>
+
+                    <div class="table-toolbar-actions">
+                        <button
+                            type="button"
+                            class="table-action"
+                            id="refreshButton"
+                        >
+                            ↻ Refresh
+                        </button>
+
+                        <label for="pageSizeSelect" class="page-size-label">
+                            Rows
+                        </label>
+
+                        <select
+                            id="pageSizeSelect"
+                            class="page-size-select"
+                        >
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Spreadsheet-style job data grid -->
+                <div class="table-container">
+                    <table class="jobs-table">
+                        <thead>
+                            <tr>
+                                <th class="checkbox-column">
+                                    <input
+                                        type="checkbox"
+                                        id="selectAllJobs"
+                                        aria-label="Exclude all jobs on this page from export"
+                                    >
+                                </th>
+
+                                <th data-sort="title">Job Title <span class="sort-indicator">↕</span></th>
+                                <th data-sort="company">Company <span class="sort-indicator">↕</span></th>
+                                <th data-sort="location">Location <span class="sort-indicator">↕</span></th>
+                                <th data-sort="experience">Experience <span class="sort-indicator">↕</span></th>
+                                <th>Salary</th>
+                                <th data-sort="posted_at">Posted After <span class="sort-indicator">↕</span></th>
+                                <th class="admin-job-link-column">Job Link</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="jobsTableBody">
+                            <tr>
+                                <td colspan="8" class="empty-state">
+                                    <div class="loading-indicator"></div>
+                                    <p>Loading job listings...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table footer and pagination -->
+                <footer class="table-footer">
+                    <span id="paginationInfo">Loading records...</span>
+
+                    <div
+                        class="pagination"
+                        aria-label="Job listing pagination"
+                    >
+                        <button
+                            type="button"
+                            id="firstPageButton"
+                            aria-label="First page"
+                        >«</button>
+
+                        <button
+                            type="button"
+                            id="previousPageButton"
+                            aria-label="Previous page"
+                        >‹</button>
+
+                        <span id="currentPageLabel">Page 1 of 1</span>
+
+                        <button
+                            type="button"
+                            id="nextPageButton"
+                            aria-label="Next page"
+                        >›</button>
+
+                        <button
+                            type="button"
+                            id="lastPageButton"
+                            aria-label="Last page"
+                        >»</button>
+                    </div>
+                </footer>
+
+                <div
+                    class="notification"
+                    id="notification"
+                    role="status"
+                    aria-live="polite"
+                ></div>
+            </section>
+
+            <!-- Company career sites are scraper sources; company-name filtering remains on the job listings page. -->
+
+            <!-- Credits & Subscription admin workspace -->
+<section class="workspace secondary-page" id="creditsPage" hidden>
+  <div id="creditsInlineContent">
+    <main class="credits-container"><h1>Credits &amp; Subscription</h1><p>Configure free credits and manage user balances, subscriptions, and account status.</p>
+      <section class="allocation-card"><label>New-user free credits <input id="allocation" type="number" min="0" value="5"></label><button id="saveAllocation">Save allocation</button></section>
+      <h2>User accounts</h2><div id="creditsUsers">Loading...</div><h2>Credit consumption history</h2><div id="creditsHistory">Loading...</div>
+  </div>
+</section>
+
+<!-- Reports overview -->
+            
+<!-- Reports page -->
+<section class="workspace secondary-page" id="reportsPage" hidden>
+    <div class="workspace-heading reports-heading">
+        <div>
+            <p class="report-eyebrow">COLLECTION INTELLIGENCE</p>
+            <h2>Scraper Report</h2>
+            <p>Review collected vacancies, source coverage and recent collection outcomes.</p>
+        </div>
+        <div class="reports-header-actions">
+            <button type="button" class="table-action" id="refreshReportsButton">↻ Refresh report</button>
+        </div>
+    </div>
+
+    <div class="report-overview-cards" aria-label="Report summary">
+        <article class="report-overview-card"><span class="report-card-label">Active jobs stored</span><strong id="reportMetricTotalJobs">—</strong><small>Current inventory in the database</small></article>
+        <article class="report-overview-card"><span class="report-card-label">Added today</span><strong id="reportMetricAddedToday">—</strong><small>New records created today</small></article>
+        <article class="report-overview-card"><span class="report-card-label">Sources tracked</span><strong id="reportMetricSources">—</strong><small>Portals and company career sites</small></article>
+        <article class="report-overview-card"><span class="report-card-label">Failed runs today</span><strong id="reportMetricFailures">—</strong><small>Collection runs needing review</small></article>
+    </div>
+
+    <section class="report-panel reports-content">
+        <div class="report-content-heading">
+            <div>
+                <h3>Job inventory</h3>
+                <p>Filter the records saved by V4Career and export the matching dataset.</p>
+            </div>
+            <div class="report-export-actions" id="reportExportActions">
+                <button type="button" class="export-button excel-button" id="reportExcelButton">▣ Export Excel</button>
+                <button type="button" class="export-button csv-button" id="reportCsvButton">↓ Export CSV</button>
+            </div>
+        </div>
+
+        <div class="report-filters" id="reportFilters">
+            <label class="report-field report-keyword-field"><span>Keyword</span><input id="reportKeyword" type="search" placeholder="Job title or keyword"></label>
+            <label class="report-field"><span>Source</span><select id="reportSource"><option value="">All sources</option></select></label>
+            <label class="report-field"><span>Company</span><input id="reportCompany" type="search" placeholder="Company name"></label>
+            <label class="report-field"><span>Location</span><input id="reportLocation" type="search" placeholder="City or location"></label>
+            <label class="report-field"><span>Posted from</span><input id="reportPostedFrom" type="date"></label>
+            <label class="report-field"><span>Posted to</span><input id="reportPostedTo" type="date"></label>
+            <div class="report-filter-actions">
+                <button type="button" class="primary-button" id="applyReportFilters">Apply filters</button>
+                <button type="button" class="table-action" id="resetReportFilters">Reset</button>
+            </div>
+        </div>
+
+        <div class="report-results-toolbar">
+            <span id="reportResultSummary" aria-live="polite">Loading report…</span>
+            <div class="report-table-controls">
+                <label>Sort by<select id="reportSort"><option value="posted_date_desc">Newest posted</option><option value="posted_date_asc">Oldest posted</option><option value="title_asc">Job title A–Z</option><option value="company_asc">Company A–Z</option></select></label>
+                <label><span class="sr-only">Rows per page</span><select id="reportPageSize" aria-label="Rows per page"><option value="10">10 rows</option><option value="20" selected>20 rows</option><option value="50">50 rows</option><option value="100">100 rows</option></select></label>
+            </div>
+        </div>
+
+        <div class="table-container report-table-container">
+            <table class="jobs-table report-results-table">
+                <thead id="reportTableHead"><tr><th>#</th><th>Job title</th><th>Company</th><th>Location</th><th>Experience</th><th>Salary</th><th>Source</th><th>Posted</th><th>Details</th></tr></thead>
+                <tbody id="reportTableBody"><tr><td colspan="9" class="empty-state">Loading report records…</td></tr></tbody>
+            </table>
+        </div>
+        <div class="report-pagination" id="reportPagination"><button type="button" class="table-action" id="reportPreviousPage" disabled>‹ Previous</button><span id="reportPageSummary">Page 1</span><button type="button" class="table-action" id="reportNextPage" disabled>Next ›</button></div>
+    </section>
+
+    <section class="report-panel report-activity-panel">
+        <div class="report-content-heading"><div><h3>Recent collection activity</h3><p>Last runs recorded by the collection pipeline, including failures.</p></div><span class="report-section-note">Latest 8 runs</span></div>
+        <div class="table-container">
+            <table class="jobs-table report-activity-table"><thead><tr><th>Source</th><th>Started</th><th>Status</th><th>Found</th><th>Inserted</th><th>Updated</th><th>Message</th></tr></thead><tbody id="reportActivityBody"><tr><td colspan="7" class="empty-state">Loading collection history…</td></tr></tbody></table>
+        </div>
+    </section>
+</section>
+
+        <section class="job-details-modal" id="jobDetailsModal" role="dialog" aria-modal="true" aria-labelledby="jobDetailsTitle" hidden>
+            <button type="button" class="job-details-backdrop" data-close-job-details aria-label="Close job details"></button>
+            <article class="job-details-panel">
+                <header class="job-details-header">
+                    <div><p class="job-details-eyebrow">JOB OPPORTUNITY</p><h2 id="jobDetailsTitle">Job title</h2><p id="jobDetailsCompany" class="job-details-company"></p></div>
+                    <button type="button" id="jobDetailsClose" class="job-details-close" aria-label="Close">×</button>
+                </header>
+                <div class="job-details-content">
+                    <section><h3>Job overview</h3><div id="jobDetailsMeta" class="job-details-facts"></div></section>
+                    <section class="job-description-section"><h3>Job description &amp; requirements</h3><div id="jobDetailsDescription" class="job-details-description">Description not provided by source.</div></section>
+                </div>
+                <footer class="job-details-footer"><span>Details are based on the information supplied by the job source.</span><div><button type="button" id="jobDetailsExport" class="job-details-export">Export / Print</button><a id="jobDetailsApplyLink" class="job-details-apply" href="#" target="_blank" rel="noopener noreferrer" hidden>Open original listing ↗</a></div></footer>
+            </article>
+        </section>
+
+        <section class="workspace secondary-page" id="creditsPage" hidden><div id="creditsAdminContent"></div></section>
+        </main>
+    </div>
+
+    <script
+        src="{{ url_for('static', filename='app.js', v='job-details-popup-key-points-20261022-v2') }}"
+        defer
+    ></script>
+</body>
+</html>

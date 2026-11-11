@@ -1,0 +1,1 @@
+This package is a separate test copy. Existing production files and requirements.txt were not modified for JobSpy. Use V4Career_Backup_Before_JobSpy_Test.zip to restore the prior free-collector package. JobSpy test writes only CSV/JSON under jobspy_test_results and never writes to the V4Career database.

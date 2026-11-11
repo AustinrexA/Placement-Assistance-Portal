@@ -1,0 +1,35 @@
+/* Phase 4 Credits & Subscription page */
+.credits-page{background:#f3f6fa;color:#263648;font-size:14px}
+.credits-container{width:min(1500px,calc(100% - 48px));margin:32px auto;padding:0 8px}
+.credits-container h1{font-size:30px;color:#16324f;margin:0 0 10px;font-weight:750}
+.credits-container>p{color:#718096;margin:0 0 26px;font-size:15px}
+.credits-container h2{font-size:21px;color:#16324f;margin:26px 0 14px}
+.allocation-card{background:#fff;border:1px solid #dce3eb;border-radius:12px;padding:22px 24px;margin:20px 0 28px;box-shadow:0 3px 12px rgba(22,50,79,.05);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.allocation-card label{font-weight:600;color:#263648;display:flex;align-items:center;gap:12px}
+.credits-page input[type=number]{width:90px;padding:9px 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#263648}
+.credits-page button{border:0;border-radius:7px;padding:9px 13px;background:#ff6700;color:#fff;font-weight:600;transition:background .15s,transform .15s}
+.credits-page button:hover{background:#e85d00;transform:translateY(-1px)}
+.credits-table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #dce3eb;border-radius:10px;overflow:hidden;box-shadow:0 3px 12px rgba(22,50,79,.04);font-size:13px}
+.credits-table th{background:#eaf0f6;color:#16324f;text-align:left;font-weight:700;padding:14px 13px;border-bottom:1px solid #dce3eb;white-space:nowrap}
+.credits-table td{padding:12px 13px;border-bottom:1px solid #e7edf3;vertical-align:middle}
+.credits-table tr:last-child td{border-bottom:0}
+.credits-table tbody tr:nth-child(even){background:#f8fafc}
+.credits-table tbody tr:hover{background:#fff4eb}
+.credits-table td:last-child{white-space:nowrap}
+.credits-table td button{margin:4px 6px 4px 0;padding:8px 12px;font-size:12px;background:#fff4eb;color:#b84b00;border:1px solid #ffd1ad;white-space:nowrap}
+.credits-table td button:hover{background:#ffeadb;color:#963c00}
+.credits-table td button:nth-of-type(2),
+.credits-table td button:nth-of-type(3),
+.credits-table td button:nth-of-type(4),
+.credits-table td button:nth-of-type(5){background:#fff4eb;color:#b84b00;border:1px solid #ffd1ad}
+.credits-table td button:nth-of-type(2):hover,
+.credits-table td button:nth-of-type(3):hover,
+.credits-table td button:nth-of-type(4):hover,
+.credits-table td button:nth-of-type(5):hover{background:#ffe4cf;color:#963c00}
+.credits-table td:last-child{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.credits-table td button:nth-of-type(2){background:#FFF4EB}
+.credits-table td button:nth-of-type(3){background:#FFF4EB}
+.credits-table td button:nth-of-type(4){background:#FFF4EB}
+.credits-table td button:nth-of-type(5){background:#FFF4EB}
+#users,#history{overflow-x:auto;border-radius:10px}
+@media(max-width:900px){.credits-container{width:calc(100% - 24px);margin:20px auto}.credits-container h1{font-size:25px}.credits-table{min-width:850px}.allocation-card{align-items:flex-start}}

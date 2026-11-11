@@ -1,0 +1,21 @@
+﻿portal,key,status,exit_code,elapsed_seconds,log_file,started_at
+Naukri,NAUKRI,SUCCESS,0,21.81,test-results\source_logs\NAUKRI.log,2026-10-28T15:26:11+05:30
+Indeed,INDEED,SUCCESS,0,47.92,test-results\source_logs\INDEED.log,2026-10-28T15:26:33+05:30
+Foundit,FOUNDIT,SUCCESS,0,12.78,test-results\source_logs\FOUNDIT.log,2026-10-28T15:27:21+05:30
+TimesJobs,TIMESJOBS,SUCCESS,0,16.59,test-results\source_logs\TIMESJOBS.log,2026-10-28T15:27:34+05:30
+Internshala,INTERNSHALA,SUCCESS,0,16.53,test-results\source_logs\INTERNSHALA.log,2026-10-28T15:27:50+05:30
+Freshersworld,FRESHERSWORLD,SUCCESS,0,15.28,test-results\source_logs\FRESHERSWORLD.log,2026-10-28T15:28:07+05:30
+Cutshort,CUTSHORT,SUCCESS,0,21.56,test-results\source_logs\CUTSHORT.log,2026-10-28T15:28:22+05:30
+Instahyre,INSTAHYRE,FAILED,1,1.62,test-results\source_logs\INSTAHYRE.log,2026-10-28T15:28:44+05:30
+Hirist,HIRIST,SUCCESS,0,31.01,test-results\source_logs\HIRIST.log,2026-10-28T15:28:45+05:30
+Apna,APNA,FAILED,1,14.53,test-results\source_logs\APNA.log,2026-10-28T15:29:16+05:30
+Shine.com,SHINE_COM,SUCCESS,0,32.08,test-results\source_logs\SHINE_COM.log,2026-10-28T15:29:31+05:30
+Wellfound,WELLFOUND,SUCCESS,0,15.61,test-results\source_logs\WELLFOUND.log,2026-10-28T15:30:03+05:30
+National Career Service (NCS),NATIONAL_CAREER_SERVICE_NCS,SUCCESS,0,15.14,test-results\source_logs\NATIONAL_CAREER_SERVICE_NCS.log,2026-10-28T15:30:18+05:30
+iimjobs,IIMJOBS,SUCCESS,0,13.42,test-results\source_logs\IIMJOBS.log,2026-10-28T15:30:34+05:30
+WorkIndia,WORKINDIA,FAILED,1,29.17,test-results\source_logs\WORKINDIA.log,2026-10-28T15:30:47+05:30
+Jooble,JOOBLE,SUCCESS,0,50.92,test-results\source_logs\JOOBLE.log,2026-10-28T15:31:16+05:30
+QuikrJobs,QUIKRJOBS,SUCCESS,0,17.23,test-results\source_logs\QUIKRJOBS.log,2026-10-28T15:32:07+05:30
+Jora,JORA,SUCCESS,0,22.53,test-results\source_logs\JORA.log,2026-10-28T15:32:24+05:30
+PlacementIndia,PLACEMENTINDIA,SUCCESS,0,16.67,test-results\source_logs\PLACEMENTINDIA.log,2026-10-28T15:32:47+05:30
+Glassdoor,GLASSDOOR,SUCCESS,0,27.56,test-results\source_logs\GLASSDOOR.log,2026-10-28T15:33:04+05:30

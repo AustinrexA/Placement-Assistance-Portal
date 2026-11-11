@@ -1,0 +1,5 @@
+{
+  "_comment": "Add only public company-board identifiers you have verified. Greenhouse slug is the board token; Lever slug is the company's Lever postings site. Empty defaults intentionally avoid guessing slugs.",
+  "greenhouse": [],
+  "lever": []
+}
